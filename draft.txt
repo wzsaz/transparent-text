@@ -1,0 +1,36 @@
+Plan (brief)
+High-level goal: produce reversible, high-security encoder that outputs plausible human text and a decoder that recovers the original plaintext.
+Core principles:
+Confidentiality & integrity: always AEAD (e.g., AES-GCM or ChaCha20-Poly1305) with random nonce per message and a secure key from KMS/HSM or a KDF.
+Reversible mapping: use a bijective mixed-radix encoding (payload → integer → slot indices) so every word sequence maps back exactly to the payload bytes.
+Human fluency: leverage multiple templates and curated word buckets (subjects, verbs, objects, adjectives...). Templates and bucket order are stable and deterministic; template ID is part of the encoded payload so decoding is exact.
+Deterministic variation: choose template and bucket offsets via a PRF keyed with an encoding key and the AEAD payload — keeps outputs varied but reversible.
+Safety: include version, length, nonce, and AEAD tag in the payload before mapping. Use checksum or tag verification on decode and reject on mismatch.
+Hardening: keep keys in KMS/HSM, log minimal metadata, rotate keys, test with vectors, and use vetted crypto libs.
+Encoding/Decoding pipeline (concise)
+Generate ephemeral nonce; AEAD_encrypt(key, nonce, plaintext, associated_data) -> ciphertext + tag.
+Build payload = version | nonce | ciphertext | tag | length_metadata.
+Compute a PRF_seed = HMAC(key_map, payload) to pick templateID deterministically.
+Pick template T (ordered list of S slots). Each slot s has a bucket size R_s and ordered word list W_s[0..R_s-1].
+Convert payload bytes to a non-negative BigInteger N.
+Decompose N into mixed radices: digit_s = N mod R_s; N = N / R_s; proceed for all slots; include templateID as additional radix at a known position so it’s reversible.
+Map each digit_s -> word = W_s[digit_s] and render sentence via template surface forms (punctuation, capitalization).
+Output sentence.
+Decode does strict reverse:
+Tokenize into slots per template; map words back to indices digit_s.
+Reconstruct BigInteger via mixed-radix composition (reverse of decomposition).
+Extract payload bytes; validate length/version; AEAD_decrypt(key, nonce, ciphertext, associated_data) and verify tag.
+Return plaintext or error on verification failure.
+Security notes (concise)
+Always AEAD before mapping: avoids plaintext leakage to language model / observers.
+Random nonce ensures identical plaintexts encode differently across encryptions.
+Bijection prevents information loss; templateID and normalization rules must be strictly enforced.
+Word buckets must avoid ambiguous tokens (no punctuation inside tokens, stable Unicode normalization NFKC or NFC).
+Resist frequency analysis: AEAD randomness + multiple templates reduces linkability.
+Tamper detection: AEAD tag + payload length/version checks; reject malformed sentences.
+Key management: use KMS/HSM; derive mapping key and AEAD key from root with HKDF; rotate keys and publish version mapping.
+Audit, test vectors, fuzzing, and human readability evaluation needed.
+Tradeoffs
+Human realism vs throughput/space: more templates and large buckets → longer sentences for same payload size.
+PQ resilience: optionally use hybrid KEM for long-term confidentiality and wrap AEAD key.
+Performance: mapping overhead depends on BigInteger ops and sentence length; precompute bucket tables.
