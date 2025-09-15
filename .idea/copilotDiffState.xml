@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CopilotDiffPersistence">
+    <option name="pendingDiffs">
+      <map>
+        <entry key="$PROJECT_DIR$/build.gradle.kts">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/build.gradle.kts" />
+              <option name="originalContent" value="plugins {&#10;    kotlin(&quot;jvm&quot;) version &quot;2.2.0&quot;&#10;    application&#10;}&#10;&#10;group = &quot;waer.dev&quot;&#10;version = &quot;1.0-SNAPSHOT&quot;&#10;&#10;repositories {&#10;    mavenCentral()&#10;}&#10;&#10;dependencies {&#10;    testImplementation(kotlin(&quot;test&quot;))&#10;}&#10;&#10;tasks.test {&#10;    useJUnitPlatform()&#10;}&#10;&#10;kotlin {&#10;    jvmToolchain(23)&#10;}&#10;" />
+              <option name="updatedContent" value="plugins {&#10;    kotlin(&quot;jvm&quot;) version &quot;2.2.0&quot;&#10;    application&#10;}&#10;&#10;group = &quot;waer.dev&quot;&#10;version = &quot;1.0-SNAPSHOT&quot;&#10;&#10;repositories {&#10;    mavenCentral()&#10;}&#10;&#10;dependencies {&#10;    testImplementation(kotlin(&quot;test&quot;))&#10;}&#10;&#10;tasks.test {&#10;    useJUnitPlatform()&#10;}&#10;&#10;kotlin {&#10;    jvmToolchain(23)&#10;}&#10;&#10;application {&#10;    // Main class for the demo application&#10;    mainClass.set(&quot;waer.dev.MainKt&quot;)&#10;}&#10;&#10;// Ensure the 'run' task has the main class explicitly set (compatibility with older Gradle wrappers)&#10;tasks.named(&quot;run&quot;) {&#10;    doFirst {&#10;        // No-op: this ensures the task is realized and picks up mainClass from the application plugin&#10;    }&#10;}&#10;&#10;// Provide an explicit JavaExec task as a reliable run entrypoint&#10;tasks.register&lt;JavaExec&gt;(&quot;runApp&quot;) {&#10;    group = &quot;application&quot;&#10;    description = &quot;Run the waer.dev.MainKt main class using the project's runtime classpath&quot;&#10;    classpath = sourceSets[&quot;main&quot;].runtimeClasspath&#10;    mainClass.set(&quot;waer.dev.MainKt&quot;)&#10;}" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>
