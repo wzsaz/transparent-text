@@ -1,20 +1,25 @@
-package waer
+package waer.encoding
 
 import java.util.regex.Pattern
 
+/**
+ * Template for converting binary data to human-readable text patterns
+ */
 class Template(
     val id: Int,
     val patternParts: List<String>,
     val buckets: List<List<String>>
 ) {
     init {
-        require(patternParts.size == buckets.size + 1) { "patternParts must be one more than buckets (text before/after each slot)" }
+        require(patternParts.size == buckets.size + 1) {
+            "patternParts must be one more than buckets (text before/after each slot)"
+        }
     }
 
     fun slotCount(): Int = buckets.size
 
     fun render(words: List<String>): String {
-        require(words.size == slotCount())
+        require(words.size == slotCount()) { "Number of words must match slot count" }
         val sb = StringBuilder()
         for (i in 0 until slotCount()) {
             sb.append(patternParts[i])
@@ -38,14 +43,14 @@ class Template(
     }
 
     fun matchSlots(sentence: String): List<String>? {
-        val p = buildPattern()
-        val m = p.matcher(sentence)
-        if (!m.matches()) return null
-        val res = mutableListOf<String>()
+        val pattern = buildPattern()
+        val matcher = pattern.matcher(sentence)
+        if (!matcher.matches()) return null
+
+        val result = mutableListOf<String>()
         for (i in 1..slotCount()) {
-            res.add(m.group(i))
+            result.add(matcher.group(i))
         }
-        return res
+        return result
     }
 }
-

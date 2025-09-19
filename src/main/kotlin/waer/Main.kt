@@ -1,41 +1,64 @@
 package waer
 
+import waer.encoding.realistic.RealisticTextEncoder
+import waer.encryption.AesGcmEncryptor
 import java.nio.charset.StandardCharsets
+import kotlin.experimental.and
+
+fun ByteArray.toHex(): String = joinToString("") { "%02x".format(it) }
 
 fun main() {
-    // deterministic demo keys (do NOT use fixed keys in production)
-    val aeadKey = ByteArray(32) { i -> (i and 0xFF).toByte() }
-    val mapKey = ByteArray(32) { i -> ((i * 3) and 0xFF).toByte() }
+    println("=== Realistic Text Demo ===\n")
 
-    val crypto = Crypto(aeadKey)
+    try {
+        // Setup keys (do NOT use fixed keys in production)
+        val aeadKey = ByteArray(32) { i -> (i and 0xFF).toByte() }
+        val mapKey = ByteArray(32) { i -> ((i * 3) and 0xFF).toByte() }
 
-    val plaintext = "Secret message".toByteArray(StandardCharsets.UTF_8)
+        val plaintext = "Secret message".toByteArray(StandardCharsets.UTF_8)
+        println("Original plaintext: ${String(plaintext, StandardCharsets.UTF_8)}")
 
-    // compute expected payloadWithoutTemplate length: version(1) + nonce(12) + tag(16) + plaintextLength(4) + ciphertext(==plaintext.size)
-    val expectedPayloadLen = 1 + 12 + 16 + 4 + plaintext.size
+        // Test just the realistic text generation first
+        val encryptor = AesGcmEncryptor(aeadKey)
+        val encryptedData = encryptor.encrypt(plaintext)
 
-    // build a template that can represent any byte sequence of expectedPayloadLen bytes
-    // use 256-word buckets for each byte (radix 256)
-    val bucketWords = (0 until 256).map { i -> "w${i}" }
-    val buckets = List(expectedPayloadLen) { bucketWords }
+        val textEncoder = RealisticTextEncoder(mapKey)
+        val humanText = textEncoder.encode(encryptedData)
 
-    // patternParts: empty prefix, then a space between each slot, then empty suffix
-    val patternParts = MutableList(expectedPayloadLen + 1) { " " }
-    patternParts[0] = ""
-    patternParts[expectedPayloadLen] = ""
+        println("\nRealistic human text:")
+        println("\"$humanText\"")
 
-    val t = Template(
-        id = 0,
-        patternParts = patternParts,
-        buckets = buckets
-    )
+        println("\n✓ Realistic text generation successful!")
+        println("✓ This looks like real human conversation, not random words!")
 
-    val templates = listOf(t)
-    val codec = Codec(templates = templates, mapKey = mapKey, crypto = crypto)
+        val originalData = textEncoder.decode(humanText)
 
-    val sentence = codec.encode(plaintext)
-    println("Sentence: $sentence")
+        // Diagnostic: compare byte arrays before attempting decrypt
+        val origBytes = encryptedData.toByteArray()
+        val decodedBytes = originalData.toByteArray()
 
-    val recovered = codec.decode(sentence)
-    println("Recovered: ${String(recovered, StandardCharsets.UTF_8)}")
+        println("\nEncrypted payload length: original=${origBytes.size} decoded=${decodedBytes.size}")
+        val equal = origBytes.contentEquals(decodedBytes)
+        println("Payload exact match: $equal")
+        if (!equal) {
+            println("Original (hex): ${origBytes.toHex()}")
+            println("Decoded  (hex): ${decodedBytes.toHex()}")
+            // Print first differing index
+            val min = minOf(origBytes.size, decodedBytes.size)
+            for (i in 0 until min) {
+                if (origBytes[i] != decodedBytes[i]) {
+                    println("First difference at byte $i: orig=${"%02x".format(origBytes[i])} dec=${"%02x".format(decodedBytes[i])}")
+                    break
+                }
+            }
+            println("Aborting decrypt to avoid AEAD tag mismatch. Investigate encoding/decoding logic.")
+            return
+        }
+
+        val decryptedData = encryptor.decrypt(originalData)
+        println("\nDecrypted plaintext: ${String(decryptedData, StandardCharsets.UTF_8)}")
+    } catch (e: Exception) {
+        println("Error: ${e.message}")
+        e.printStackTrace()
+    }
 }
